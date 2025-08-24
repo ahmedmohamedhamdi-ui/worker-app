@@ -1,0 +1,61 @@
+/* الخلفية عامة */
+body {
+  background-color: #121212;
+  font-family: "Tahoma", sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/* الهيدر */
+header {
+  padding: 10px 20px;
+  box-shadow: 0 2px 6px rgba(212, 212, 212, 0.5);
+}
+
+/* اللوجو */
+header .logo {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  justify-content: space-around;
+}
+
+header .logo img {
+  height: 50px;
+}
+
+/* اللينكات */
+header .logo a {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: white !important;
+  text-decoration: none;
+}
+
+header .logo a:hover {
+  color: #0d6efd !important; /* أزرق بوتستراب */
+}
+
+/* تنسيق Navbar */
+.navbar {
+  background-color: #222 !important;
+}
+
+.navbar a {
+  color: white !important;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.navbar a:hover {
+  color: #0d6efd !important;
+}
+
+/* العناوين */
+h1,
+h2,
+h3,
+h4,
+h5 {
+  color: white;
+}
