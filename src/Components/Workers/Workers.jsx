@@ -71,7 +71,7 @@ export const Workers = () => {
   return (
     <div
       className="container-fluid mt-5 workers-page"
-      style={{ width: "85%", margin: "auto" }}
+      style={{ width: "100%", margin: "auto" }}
     >
       <h2 className="text-center text-white p-3 rounded shadow">
         قائمة العمال

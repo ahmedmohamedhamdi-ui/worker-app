@@ -4,17 +4,18 @@
   overflow-x: auto;
 }
 
-/* الأعمدة المثبتة */
+/* الأعمدة المثبتة للشاشات الكبيرة */
 .sticky-col {
   position: sticky;
-  left: 0;
+  left: 0px;
   background: #fff;
   z-index: 3;
+  min-width: 50px !important;
 }
 
 .sticky-col-2 {
   position: sticky;
-  left: 26px; /* عرض العمود الأول */
+  left: 50px; /* عرض العمود الأول */
   background: #fff;
   z-index: 3;
 }
@@ -31,6 +32,8 @@
 .workers-table td {
   border: 1px solid #dee2e6;
   white-space: nowrap;
+  padding: 6px 8px;
+  min-width: 120px; /* العرض الافتراضي لكل عمود */
 }
 
 /* تحسين تنسيق الجدول */
@@ -45,4 +48,26 @@
 
 .workers-page h2 {
   background-color: #f97316;
+  color: #fff;
+  text-align: center;
+  padding: 12px 0;
+  border-radius: 6px;
+}
+
+/* شاشات صغيرة - الموبايل */
+@media (max-width: 767px) {
+  .sticky-col,
+  .sticky-col-2,
+  .sticky-actions {
+    position: static;
+    box-shadow: none;
+  }
+
+  /* تقليل عرض الأعمدة لتظهر 4-5 أعمدة */
+  .workers-table th,
+  .workers-table td {
+    min-width: 20px;
+    font-size: 14px;
+    padding: 4px 6px;
+  }
 }
