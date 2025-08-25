@@ -47,11 +47,12 @@
 }
 
 .workers-page h2 {
-  background-color: #f97316;
-  color: #fff;
+  background-color: #bdd8f1;
+  color: #39435e !important;
   text-align: center;
   padding: 12px 0;
   border-radius: 6px;
+  opacity: 90%;
 }
 
 /* شاشات صغيرة - الموبايل */
