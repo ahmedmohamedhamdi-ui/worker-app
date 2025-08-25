@@ -21,7 +21,6 @@ export const Workers = () => {
         }))
         .filter((worker) => worker.idValue);
 
-      // إعادة الترقيم
       const reIndexed = data.map((worker, i) => ({
         ...worker,
         index: i + 1,
@@ -50,7 +49,6 @@ export const Workers = () => {
     try {
       await deleteDoc(doc(db, "workers", workerToDelete.id));
 
-      // إعادة الترقيم بعد الحذف
       const updatedWorkers = workers
         .filter((w) => w.id !== workerToDelete.id)
         .map((w, i) => ({ ...w, index: i + 1 }));
@@ -72,7 +70,7 @@ export const Workers = () => {
 
   return (
     <div
-      className="container-fluid mt-5"
+      className="container-fluid mt-5 workers-page"
       style={{ width: "85%", margin: "auto" }}
     >
       <h2 className="text-center text-white p-3 rounded shadow">
@@ -82,12 +80,12 @@ export const Workers = () => {
       {workers.length === 0 ? (
         <p className="text-center text-muted mt-3">لا يوجد عمال بعد</p>
       ) : (
-        <div className="table-responsive mt-4">
-          <table className="table table-striped table-bordered table-hover text-center align-middle shadow">
+        <div className="workers-table-wrap mt-4">
+          <table className="table table-striped table-bordered table-hover text-center align-middle shadow workers-table">
             <thead className="table-orange">
               <tr className="datahead">
-                <th>#</th>
-                <th>الاسم / Name</th>
+                <th className="sticky-col">#</th>
+                <th className="sticky-col-2">الاسم / Name</th>
                 <th>الجنسيه / Nationality</th>
                 <th>الديانه / Religion</th>
                 <th>رقم الإقامة / ID</th>
@@ -99,14 +97,14 @@ export const Workers = () => {
                 <th>رقم الغرفة / Room</th>
                 <th>رقم الجوال / Phone</th>
                 <th>ملاحظات / Notes</th>
-                <th>تعديلات / Edit</th>
+                <th className="sticky-actions">تعديلات / Edit</th>
               </tr>
             </thead>
             <tbody>
               {workers.map((worker) => (
                 <tr className="datarow" key={worker.id}>
-                  <td>{worker.index}</td>
-                  <td>{worker.name}</td>
+                  <td className="sticky-col">{worker.index}</td>
+                  <td className="sticky-col-2">{worker.name}</td>
                   <td>{worker.nationality}</td>
                   <td>{worker.religion}</td>
                   <td>{worker.idValue}</td>
@@ -118,7 +116,7 @@ export const Workers = () => {
                   <td>{worker.room}</td>
                   <td>{worker.phone}</td>
                   <td>{worker.notes}</td>
-                  <td>
+                  <td className="sticky-actions">
                     <button
                       className="btn btn-warning btn-sm me-2"
                       onClick={() => handleEdit(worker)}

@@ -1,61 +1,48 @@
-/* عرض container */
-.container-fluid {
-  width: 95% !important;
-  margin: auto;
+/* علبة الجدول مع سكرول أفقي */
+.workers-table-wrap {
+  width: 100%;
+  overflow-x: auto;
 }
 
-/* ارتفاع الصفوف + منع التفاف النصوص + محاذاة */
-.table td,
-.table th {
-  padding: 12px !important;
-  white-space: nowrap !important;
-  text-align: center !important;
-  vertical-align: middle !important;
-}
-
-/* الهيدر */
-.datahead th {
-  white-space: nowrap !important;
-  text-align: center !important;
-  vertical-align: middle !important;
-}
-
-/* العمود الأول: رقم الترتيب (#) */
-.table th:first-child,
-.table td:first-child {
+/* الأعمدة المثبتة */
+.sticky-col {
   position: sticky;
-  left: 0.7px;
-  width: 50px; /* عرض ثابت للترقيم */
-  min-width: 50px;
-  max-width: 50px;
-  background-color: #fff;
-  z-index: 12;
+  left: 0;
+  background: #fff;
+  z-index: 3;
 }
 
-/* العمود الثاني: الاسم */
-.table th:nth-child(2),
-.table td:nth-child(2) {
+.sticky-col-2 {
   position: sticky;
-  left: 50px; /* يبدأ بعد نهاية العمود الأول */
-  width: 200px; /* عدّل حسب طول الاسم */
-  min-width: 200px;
-  background-color: #fff;
-  z-index: 12;
-
-  /* النص الطويل يظهر ... */
-  overflow: hidden;
-  text-overflow: ellipsis;
+  left: 26px; /* عرض العمود الأول */
+  background: #fff;
+  z-index: 3;
 }
 
-/* العمود الأخير: الإجراءات */
-.table th:last-child,
-.table td:last-child {
+.sticky-actions {
   position: sticky;
   right: 0;
-  width: 120px; /* عدّل حسب أزرار الإجراءات */
-  min-width: 120px;
-  background-color: #fff;
-  z-index: 12;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  background: #fff;
+  z-index: 3;
+}
+
+/* حدود واضحة */
+.workers-table th,
+.workers-table td {
+  border: 1px solid #dee2e6;
+  white-space: nowrap;
+}
+
+/* تحسين تنسيق الجدول */
+.workers-table th {
+  background-color: #f97316; /* برتقالي */
+  color: #fff;
+}
+
+.workers-table .datarow:nth-child(even) {
+  background-color: #f8f9fa;
+}
+
+.workers-page h2 {
+  background-color: #f97316;
 }
