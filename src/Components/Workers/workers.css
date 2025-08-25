@@ -1,0 +1,61 @@
+/* عرض container */
+.container-fluid {
+  width: 95% !important;
+  margin: auto;
+}
+
+/* ارتفاع الصفوف + منع التفاف النصوص + محاذاة */
+.table td,
+.table th {
+  padding: 12px !important;
+  white-space: nowrap !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+
+/* الهيدر */
+.datahead th {
+  white-space: nowrap !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+}
+
+/* العمود الأول: رقم الترتيب (#) */
+.table th:first-child,
+.table td:first-child {
+  position: sticky;
+  left: 0.7px;
+  width: 50px; /* عرض ثابت للترقيم */
+  min-width: 50px;
+  max-width: 50px;
+  background-color: #fff;
+  z-index: 12;
+}
+
+/* العمود الثاني: الاسم */
+.table th:nth-child(2),
+.table td:nth-child(2) {
+  position: sticky;
+  left: 50px; /* يبدأ بعد نهاية العمود الأول */
+  width: 200px; /* عدّل حسب طول الاسم */
+  min-width: 200px;
+  background-color: #fff;
+  z-index: 12;
+
+  /* النص الطويل يظهر ... */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* العمود الأخير: الإجراءات */
+.table th:last-child,
+.table td:last-child {
+  position: sticky;
+  right: 0;
+  width: 120px; /* عدّل حسب أزرار الإجراءات */
+  min-width: 120px;
+  background-color: #fff;
+  z-index: 12;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
