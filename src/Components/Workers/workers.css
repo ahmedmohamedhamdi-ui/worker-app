@@ -1,7 +1,7 @@
 /* علبة الجدول مع سكرول أفقي */
 .workers-table-wrap {
-  width: 100%;
-  overflow-x: auto;
+  width: 100% !important;
+  overflow-x: auto !important;
 }
 
 /* الأعمدة المثبتة للشاشات الكبيرة */
@@ -28,8 +28,8 @@
 }
 
 /* حدود واضحة */
-.workers-table th,
-.workers-table td {
+.workers-table-wrap th,
+.workers-table-wrap td {
   border: 1px solid #dee2e6;
   white-space: nowrap;
   padding: 6px 8px;
@@ -37,9 +37,9 @@
 }
 
 /* تحسين تنسيق الجدول */
-.workers-table th {
-  background-color: #f97316; /* برتقالي */
-  color: #fff;
+.workers-table-wrap th {
+  background-color: #f97316 !important; /* برتقالي */
+  color: #fff !important;
 }
 
 .workers-table .datarow:nth-child(even) {
