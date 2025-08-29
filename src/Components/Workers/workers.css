@@ -1,74 +1,69 @@
-/* علبة الجدول مع سكرول أفقي */
+/* صندوق الجدول مع تمرير أفقي */
 .workers-table-wrap {
-  width: 100% !important;
-  overflow-x: auto !important;
-}
-
-/* الأعمدة المثبتة للشاشات الكبيرة */
-.sticky-col {
-  position: sticky;
-  left: 0px;
-  background: #fff;
-  z-index: 3;
-  min-width: 50px !important;
-}
-
-.sticky-col-2 {
-  position: sticky;
-  left: 50px; /* عرض العمود الأول */
-  background: #fff;
-  z-index: 3;
-}
-
-.sticky-actions {
-  position: sticky;
-  right: 0;
-  background: #fff;
-  z-index: 3;
-}
-
-/* حدود واضحة */
-.workers-table-wrap th,
-.workers-table-wrap td {
-  border: 1px solid #dee2e6;
-  white-space: nowrap;
-  padding: 6px 8px;
-  min-width: 120px; /* العرض الافتراضي لكل عمود */
-}
-
-/* تحسين تنسيق الجدول */
-.workers-table-wrap th {
-  background-color: #f97316 !important; /* برتقالي */
-  color: #fff !important;
-}
-
-.workers-table .datarow:nth-child(even) {
-  background-color: #f8f9fa;
-}
-
-.workers-page h2 {
-  background-color: #bdd8f1;
-  color: #39435e !important;
+  overflow-x: auto;
+  margin-top: 20px;
   text-align: center;
-  padding: 12px 0;
-  border-radius: 6px;
-  opacity: 90%;
+}
+.custom-row {
+  height: 70px;
+  background-color: orange !important;
+}
+tbody {
+  background-color: white !important;
+  color: black !important;
+}
+tbody tr:hover {
+  background-color: rgb(255, 201, 131) !important;
+  cursor: pointer !important;
+}
+/* الجدول */
+.workers-table-wrap table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+  white-space: nowrap; /* منع النصوص من الانكسار */
 }
 
-/* شاشات صغيرة - الموبايل */
-@media (max-width: 767px) {
-  .sticky-col,
-  .sticky-col-2,
-  .sticky-actions {
-    position: static;
-    box-shadow: none;
-  }
+/* الخلايا */
+.workers-table-wrap table th,
+.workers-table-wrap table td {
+  padding: 8px 12px;
+  text-align: center; /* السماح للنص بالتمدد أفقيًا */
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis; /* إضافة ... للنصوص الطويلة */
+  max-width: 200px; /* أو أي قيمة مناسبة للعرض */
+}
 
-  /* تقليل عرض الأعمدة لتظهر 4-5 أعمدة */
-  .workers-table th,
-  .workers-table td {
-    min-width: 20px;
-    font-size: 14px;
+/* الفلاتر في الـthead */
+.workers-table-wrap table thead input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px 6px;
+  font-size: 12px;
+}
+
+/* الأزرار داخل الجدول */
+.workers-table-wrap table button {
+  white-space: nowrap;
+}
+
+/* تمييز الصف عند المرور */
+.workers-table-wrap table tbody tr:hover {
+  background-color: rgba(109, 109, 109, 0.05);
+}
+
+/* مودال الحذف */
+.modal .modal-content {
+  direction: rtl;
+  text-align: right;
+}
+
+/* ميديا كويري للشاشات الصغيرة */
+@media (max-width: 767px) {
+  .workers-table-wrap table th,
+  .workers-table-wrap table td {
+    font-size: 12px;
     padding: 4px 6px;
   }
 }

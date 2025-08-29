@@ -8,6 +8,7 @@ import {
   addDoc,
   query,
   orderBy,
+  updateDoc,
 } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
@@ -19,25 +20,29 @@ export const Workers = () => {
   const [workerToDelete, setWorkerToDelete] = useState(null);
   const [excelData, setExcelData] = useState([]);
   const [filters, setFilters] = useState({});
-  const [selectedWorkers, setSelectedWorkers] = useState([]); // ✅ العمال المحددين
+  const [selectedWorkers, setSelectedWorkers] = useState([]);
+  const [showTransfer, setShowTransfer] = useState(false);
+  const [workerToTransfer, setWorkerToTransfer] = useState(null);
+  const [newResidence, setNewResidence] = useState("");
   const navigate = useNavigate();
 
-  // جلب العمال
+  // الخيارات المتاحة لـ Residence
+  const residenceOptions = ["سكن 1", "سكن 2", "سكن 3", "سكن 4", "سكن 5"];
+
+  // جلب العمال من Firestore
   const fetchWorkers = async () => {
     try {
       const q = query(collection(db, "workers"), orderBy("createdAt", "desc"));
       const querySnapshot = await getDocs(q);
-      const data = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
+      const data = querySnapshot.docs.map((docu) => ({
+        id: docu.id,
+        ...docu.data(),
       }));
-
       const reIndexed = data.map((worker, i) => ({
         ...worker,
         index: i + 1,
         source: "firestore",
       }));
-
       setWorkers(reIndexed);
     } catch (error) {
       console.error("Error fetching workers: ", error);
@@ -80,7 +85,35 @@ export const Workers = () => {
     setWorkerToDelete(null);
   };
 
-  // ✅ مسح جميع العمال
+  // فتح مودال النقل
+  const handleTransferClick = (worker) => {
+    setWorkerToTransfer(worker);
+    setNewResidence(worker.housing || "");
+    setShowTransfer(true);
+  };
+
+  // تأكيد النقل
+  const confirmTransfer = async () => {
+    try {
+      if (workerToTransfer?.id && newResidence) {
+        const workerRef = doc(db, "workers", workerToTransfer.id);
+        await updateDoc(workerRef, { housing: newResidence });
+
+        const updatedWorkers = workers.map((w) =>
+          w.id === workerToTransfer.id ? { ...w, housing: newResidence } : w
+        );
+        setWorkers(updatedWorkers);
+        setShowTransfer(false);
+        setWorkerToTransfer(null);
+        alert("تم نقل العامل بنجاح ✅");
+      }
+    } catch (error) {
+      console.error("خطأ في النقل:", error);
+      alert("حدث خطأ أثناء النقل ❌");
+    }
+  };
+
+  // مسح جميع العمال
   const deleteAllWorkers = async () => {
     if (!window.confirm("⚠️ هل أنت متأكد أنك تريد مسح جميع العمال؟")) return;
     try {
@@ -98,7 +131,7 @@ export const Workers = () => {
     }
   };
 
-  // ✅ مسح العمال المحددين فقط
+  // مسح العمال المحددين
   const deleteSelectedWorkers = async () => {
     if (selectedWorkers.length === 0) {
       alert("⚠️ من فضلك حدد عمال أولاً");
@@ -110,9 +143,9 @@ export const Workers = () => {
         deleteDoc(doc(db, "workers", id))
       );
       await Promise.all(deletePromises);
-      const updatedWorkers = workers.filter(
-        (worker) => !selectedWorkers.includes(worker.id)
-      );
+      const updatedWorkers = workers
+        .filter((worker) => !selectedWorkers.includes(worker.id))
+        .map((w, i) => ({ ...w, index: i + 1 }));
       setWorkers(updatedWorkers);
       setSelectedWorkers([]);
       alert("تم حذف العمال المحددين ✅");
@@ -126,7 +159,6 @@ export const Workers = () => {
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     const reader = new FileReader();
-
     reader.onload = (evt) => {
       const data = new Uint8Array(evt.target.result);
       const workbook = XLSX.read(data, { type: "array" });
@@ -151,15 +183,13 @@ export const Workers = () => {
         source: "excel",
       }));
 
-      const reversedData = mappedData.reverse();
-      setWorkers(reversedData);
-      setExcelData(reversedData);
+      setWorkers(mappedData.reverse());
+      setExcelData(mappedData.reverse());
     };
-
     reader.readAsArrayBuffer(file);
   };
 
-  // رفع بيانات Excel
+  // حفظ بيانات Excel في Firestore
   const saveExcelDataToFirestore = async () => {
     try {
       for (let worker of excelData) {
@@ -188,7 +218,7 @@ export const Workers = () => {
     }
   };
 
-  // ✅ تحديث الفلاتر
+  // الفلاتر
   const handleFilterChange = (e, column) => {
     setFilters({
       ...filters,
@@ -196,7 +226,6 @@ export const Workers = () => {
     });
   };
 
-  // ✅ تطبيق الفلاتر
   const filteredWorkers = workers.filter((worker) =>
     Object.keys(filters).every((key) =>
       worker[key]
@@ -206,17 +235,19 @@ export const Workers = () => {
     )
   );
 
-  // ✅ اختيار/إلغاء عامل
+  // التحديد
   const toggleSelectWorker = (id) => {
+    if (!id) return;
     setSelectedWorkers((prev) =>
       prev.includes(id) ? prev.filter((w) => w !== id) : [...prev, id]
     );
   };
 
-  // ✅ اختيار/إلغاء الكل
   const toggleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedWorkers(filteredWorkers.map((worker) => worker.id));
+      setSelectedWorkers(
+        filteredWorkers.filter((w) => !!w.id).map((worker) => worker.id)
+      );
     } else {
       setSelectedWorkers([]);
     }
@@ -231,7 +262,7 @@ export const Workers = () => {
         قائمة العمال
       </h2>
 
-      {/* رفع ملف Excel + زرار مسح جميع العمال + زرار مسح المحددين */}
+      {/* أدوات رفع Excel وحذف */}
       <div className="text-center mt-3">
         <input
           type="file"
@@ -268,36 +299,37 @@ export const Workers = () => {
       {workers.length === 0 ? (
         <p className="text-center text-muted mt-3">لا يوجد عمال بعد</p>
       ) : (
-        <div className="workers-table-wrap mt-4">
-          <table className="table table-striped table-bordered table-hover text-center align-middle shadow workers-table">
-            <thead className="table-orange">
-              <tr className="datahead">
+        <div className="workers-table-wrap mt-4 cursor-pointer ">
+          <table className="table-bordered text-center align-middle cursor-pointer">
+            <thead>
+              <tr className="custom-row">
                 <th>
                   <input
                     type="checkbox"
                     onChange={toggleSelectAll}
                     checked={
-                      selectedWorkers.length === filteredWorkers.length &&
-                      filteredWorkers.length > 0
+                      selectedWorkers.length > 0 &&
+                      selectedWorkers.length ===
+                        filteredWorkers.filter((w) => !!w.id).length &&
+                      filteredWorkers.filter((w) => !!w.id).length > 0
                     }
                   />
                 </th>
-                <th>No#م</th>
-                <th>الاسم /Name</th>
-                <th>Nationality/ الجنسية</th>
-                <th>Religion/دِين</th>
-                <th>رقم الاقامة/Iqama Number</th>
-                <th>رقم الملف/File Number</th>
-                <th>الوظيفة /Job</th>
-                <th>Residence name/ اسم السكن</th>
-                <th>رقم الدور/Floor Number</th>
-                <th>رقم الشقة/Apartment Number</th>
-                <th>رقم الغرفة /Room Number</th>
-                <th>رقم الجوال /Mobile Number</th>
+                <th>No#</th>
+                <th>Name</th>
+                <th>Nationality</th>
+                <th>Religion</th>
+                <th>Iqama Number</th>
+                <th>File Number</th>
+                <th>Job</th>
+                <th>Residence</th>
+                <th>Floor</th>
+                <th>Apartment</th>
+                <th>Room</th>
+                <th>Mobile</th>
                 <th>Notes</th>
-                <th>تعديلات / Edit</th>
+                <th>Editing</th>
               </tr>
-              {/* ✅ صف الفلاتر */}
               <tr>
                 <th></th>
                 {[
@@ -331,50 +363,74 @@ export const Workers = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredWorkers.map((worker) => (
-                <tr key={worker.id || worker.index}>
-                  <td>
-                    <input
-                      type="checkbox"
-                      checked={selectedWorkers.includes(worker.id)}
-                      onChange={() => toggleSelectWorker(worker.id)}
-                    />
-                  </td>
-                  <td>{worker.index}</td>
-                  <td>{worker.name}</td>
-                  <td>{worker.nationality}</td>
-                  <td>{worker.religion}</td>
-                  <td>{worker.idValue}</td>
-                  <td>{worker.fileNumber}</td>
-                  <td>{worker.job}</td>
-                  <td>{worker.housing}</td>
-                  <td>{worker.floor}</td>
-                  <td>{worker.apartment}</td>
-                  <td>{worker.room}</td>
-                  <td>{worker.phone}</td>
-                  <td>{worker.notes}</td>
-                  <td>
-                    <button
-                      className="btn btn-warning btn-sm me-2"
-                      onClick={() => handleEdit(worker)}
-                    >
-                      تعديل
-                    </button>
-                    <button
-                      className="btn btn-danger btn-sm"
-                      onClick={() => handleDeleteClick(worker)}
-                    >
-                      حذف
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {filteredWorkers.map((worker) => {
+                const isSelected =
+                  !!worker.id && selectedWorkers.includes(worker.id);
+
+                return (
+                  <tr
+                    key={worker.id || worker.index}
+                    style={{
+                      backgroundColor: isSelected
+                        ? "rgb(255, 201, 131)"
+                        : "transparent", // تغيير اللون عند الاختيار
+                    }}
+                  >
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={isSelected}
+                        onChange={() => toggleSelectWorker(worker.id)}
+                        disabled={!worker.id}
+                        title={
+                          worker.id
+                            ? ""
+                            : "احفظ البيانات أولًا قبل التحديد/الحذف"
+                        }
+                      />
+                    </td>
+                    <td>{worker.index}</td>
+                    <td>{worker.name}</td>
+                    <td>{worker.nationality}</td>
+                    <td>{worker.religion}</td>
+                    <td>{worker.idValue}</td>
+                    <td>{worker.fileNumber}</td>
+                    <td>{worker.job}</td>
+                    <td>{worker.housing}</td>
+                    <td>{worker.floor}</td>
+                    <td>{worker.apartment}</td>
+                    <td>{worker.room}</td>
+                    <td>{worker.phone}</td>
+                    <td>{worker.notes}</td>
+                    <td>
+                      <button
+                        className="btn btn-warning btn-sm me-2"
+                        onClick={() => handleEdit(worker)}
+                      >
+                        تعديل
+                      </button>
+                      <button
+                        className="btn btn-danger btn-sm me-2"
+                        onClick={() => handleDeleteClick(worker)}
+                      >
+                        حذف
+                      </button>
+                      <button
+                        className="btn btn-info btn-sm"
+                        onClick={() => handleTransferClick(worker)}
+                      >
+                        نقل
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
 
-      {/* ✅ مودال الحذف الفردي */}
+      {/* مودال الحذف */}
       {showConfirm && (
         <div className="modal show d-block" tabIndex="-1">
           <div className="modal-dialog modal-dialog-centered">
@@ -396,6 +452,53 @@ export const Workers = () => {
                 </button>
                 <button className="btn btn-danger" onClick={confirmDelete}>
                   حذف
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* مودال النقل */}
+      {showTransfer && (
+        <div className="modal show d-block" tabIndex="-1">
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">نقل العامل</h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setShowTransfer(false)}
+                ></button>
+              </div>
+              <div className="modal-body">
+                <p>
+                  اختر السكن الجديد للعامل:{" "}
+                  <strong>{workerToTransfer?.name}</strong>
+                </p>
+                <select
+                  className="form-select"
+                  value={newResidence}
+                  onChange={(e) => setNewResidence(e.target.value)}
+                >
+                  <option value="">اختر السكن</option>
+                  {residenceOptions.map((res) => (
+                    <option key={res} value={res}>
+                      {res}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="modal-footer">
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setShowTransfer(false)}
+                >
+                  رجوع
+                </button>
+                <button className="btn btn-primary" onClick={confirmTransfer}>
+                  تأكيد النقل
                 </button>
               </div>
             </div>
