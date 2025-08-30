@@ -1,4 +1,3 @@
-// src/Components/Login/Login.jsx
 import React, { useState } from "react";
 import { auth } from "../../firebase";
 import {
@@ -12,38 +11,31 @@ export default function Login({ setIsLoggedIn }) {
 
   const register = async () => {
     try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      console.log("User Registered:", userCredential.user);
+      await createUserWithEmailAndPassword(auth, email, password);
       alert("تم التسجيل بنجاح ✅");
       setIsLoggedIn(true);
     } catch (error) {
-      console.error("Error:", error);
+      console.error(error);
       alert(error.message);
     }
   };
 
   const login = async () => {
     try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      console.log("User Logged In:", userCredential.user);
+      await signInWithEmailAndPassword(auth, email, password);
       alert("تم تسجيل الدخول ✅");
       setIsLoggedIn(true);
     } catch (error) {
-      console.error("Error:", error);
+      console.error(error);
       alert(error.message);
     }
   };
 
   return (
-    <div className="d-flex justify-content-center align-items-center">
+    <div
+      className="d-flex justify-content-center align-items-center"
+      style={{ minHeight: "70vh" }}
+    >
       <div className="card shadow-lg p-4" style={{ width: "350px" }}>
         <h3 className="text-center mb-4" style={{ color: "white" }}>
           تسجيل الدخول / إنشاء حساب

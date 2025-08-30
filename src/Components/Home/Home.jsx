@@ -1,4 +1,3 @@
-// src/Components/Home/Home.jsx
 import React, { useState } from "react";
 import "./home.css";
 import {
@@ -7,9 +6,9 @@ import {
   Route,
   useNavigate,
 } from "react-router-dom";
-import { Workers } from "../Workers/Workers";
+import Workers from "../Workers/Workers";
 import { Addworker } from "../Addworker/Addworker";
-import Login from "../Login/Login"; // هنا صحيح
+import Login from "../Login/Login";
 
 export const Home = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -30,18 +29,19 @@ export const Home = () => {
 
       <div className="cards-container">
         <Card title="بيانات العمال" path="/workers" />
-
         {isLoggedIn && <Card title="إضافة عامل جديد" path="/addworker" />}
-
         <Card title="بيانات السكنات" path="/houses" />
-
         {isLoggedIn && <Card title="إضافة سكن جديد" path="/addhouse" />}
-
         {!isLoggedIn && <Card title="تسجيل الدخول" path="/login" />}
       </div>
 
       <Routes>
-        <Route path="/workers" element={<Workers />} />
+        <Route
+          path="/workers"
+          element={
+            <Workers isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} />
+          }
+        />
         <Route
           path="/addworker"
           element={

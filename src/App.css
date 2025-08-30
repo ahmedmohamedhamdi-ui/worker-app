@@ -1,3 +1,13 @@
-.App {
-  height: 100%;
+/* خلي البادي نفسه عليه الخلفية */
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background-image: url("https://mag-sa.com/wp-content/uploads/2024/05/Rectangle-5-2.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed; /* دي اللي بتخليها ثابته */
+  color: white;
+  text-transform: capitalize !important;
 }

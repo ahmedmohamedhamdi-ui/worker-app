@@ -4,6 +4,9 @@
   margin-top: 20px;
   text-align: center;
 }
+.workers-pae {
+  text-transform: capitalize !important;
+}
 .custom-row {
   height: 70px;
   background-color: orange !important;

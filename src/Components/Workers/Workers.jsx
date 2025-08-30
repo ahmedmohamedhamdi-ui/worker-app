@@ -1,3 +1,4 @@
+// src/Components/Workers/Workers.jsx
 import React, { useEffect, useState } from "react";
 import { db } from "../../firebase";
 import {
@@ -14,7 +15,7 @@ import { useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 import "./workers.css";
 
-export const Workers = () => {
+export default function Workers({ isLoggedIn, setIsLoggedIn }) {
   const [workers, setWorkers] = useState([]);
   const [showConfirm, setShowConfirm] = useState(false);
   const [workerToDelete, setWorkerToDelete] = useState(null);
@@ -24,12 +25,18 @@ export const Workers = () => {
   const [showTransfer, setShowTransfer] = useState(false);
   const [workerToTransfer, setWorkerToTransfer] = useState(null);
   const [newResidence, setNewResidence] = useState("");
+  const [showTransferMultiple, setShowTransferMultiple] = useState(false);
+  const [newResidenceMultiple, setNewResidenceMultiple] = useState("");
   const navigate = useNavigate();
 
-  // الخيارات المتاحة لـ Residence
-  const residenceOptions = ["سكن 1", "سكن 2", "سكن 3", "سكن 4", "سكن 5"];
+  const residenceOptions = [
+    "al wafa",
+    "al falah",
+    "al fadila",
+    "al sanabl",
+    "al abra",
+  ];
 
-  // جلب العمال من Firestore
   const fetchWorkers = async () => {
     try {
       const q = query(collection(db, "workers"), orderBy("createdAt", "desc"));
@@ -85,14 +92,12 @@ export const Workers = () => {
     setWorkerToDelete(null);
   };
 
-  // فتح مودال النقل
   const handleTransferClick = (worker) => {
     setWorkerToTransfer(worker);
     setNewResidence(worker.housing || "");
     setShowTransfer(true);
   };
 
-  // تأكيد النقل
   const confirmTransfer = async () => {
     try {
       if (workerToTransfer?.id && newResidence) {
@@ -113,7 +118,37 @@ export const Workers = () => {
     }
   };
 
-  // مسح جميع العمال
+  const handleTransferMultipleClick = () => {
+    if (selectedWorkers.length === 0) {
+      alert("⚠️ من فضلك حدد عمال أولاً");
+      return;
+    }
+    setShowTransferMultiple(true);
+    setNewResidenceMultiple(residenceOptions[0] || "");
+  };
+
+  const confirmTransferMultiple = async () => {
+    try {
+      if (!newResidenceMultiple) return;
+      const updatePromises = selectedWorkers.map((id) =>
+        updateDoc(doc(db, "workers", id), { housing: newResidenceMultiple })
+      );
+      await Promise.all(updatePromises);
+      const updatedWorkers = workers.map((w) =>
+        selectedWorkers.includes(w.id)
+          ? { ...w, housing: newResidenceMultiple }
+          : w
+      );
+      setWorkers(updatedWorkers);
+      setSelectedWorkers([]);
+      setShowTransferMultiple(false);
+      alert("تم نقل العمال المحددين بنجاح ✅");
+    } catch (error) {
+      console.error("خطأ في نقل العمال المحددين:", error);
+      alert("حدث خطأ أثناء النقل ❌");
+    }
+  };
+
   const deleteAllWorkers = async () => {
     if (!window.confirm("⚠️ هل أنت متأكد أنك تريد مسح جميع العمال؟")) return;
     try {
@@ -131,7 +166,6 @@ export const Workers = () => {
     }
   };
 
-  // مسح العمال المحددين
   const deleteSelectedWorkers = async () => {
     if (selectedWorkers.length === 0) {
       alert("⚠️ من فضلك حدد عمال أولاً");
@@ -155,7 +189,6 @@ export const Workers = () => {
     }
   };
 
-  // رفع ملف Excel
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     const reader = new FileReader();
@@ -189,7 +222,6 @@ export const Workers = () => {
     reader.readAsArrayBuffer(file);
   };
 
-  // حفظ بيانات Excel في Firestore
   const saveExcelDataToFirestore = async () => {
     try {
       for (let worker of excelData) {
@@ -218,7 +250,6 @@ export const Workers = () => {
     }
   };
 
-  // الفلاتر
   const handleFilterChange = (e, column) => {
     setFilters({
       ...filters,
@@ -235,7 +266,6 @@ export const Workers = () => {
     )
   );
 
-  // التحديد
   const toggleSelectWorker = (id) => {
     if (!id) return;
     setSelectedWorkers((prev) =>
@@ -262,59 +292,81 @@ export const Workers = () => {
         قائمة العمال
       </h2>
 
-      {/* أدوات رفع Excel وحذف */}
-      <div className="text-center mt-3">
-        <input
-          type="file"
-          accept=".xlsx, .xls"
-          onChange={handleFileUpload}
-          className="form-control w-50 mx-auto"
-        />
-        {excelData.length > 0 && (
+      {isLoggedIn && (
+        <div className="text-center my-3">
           <button
-            className="btn btn-success mt-2 mx-2"
-            onClick={saveExcelDataToFirestore}
+            className="btn btn-danger"
+            onClick={() => setIsLoggedIn(false)}
           >
-            حفظ بيانات Excel
+            Logout
           </button>
-        )}
-        {workers.length > 0 && (
-          <>
-            <button
-              className="btn btn-danger mt-2 mx-2"
-              onClick={deleteAllWorkers}
-            >
-              🗑️ مسح جميع العمال
-            </button>
-            <button
-              className="btn btn-warning mt-2"
-              onClick={deleteSelectedWorkers}
-            >
-              🗑️ مسح العمال المحددين
-            </button>
-          </>
-        )}
-      </div>
+        </div>
+      )}
 
+      {isLoggedIn && (
+        <div className="text-center mt-3">
+          <input
+            type="file"
+            accept=".xlsx, .xls"
+            onChange={handleFileUpload}
+            className="form-control w-50 mx-auto"
+          />
+          {excelData.length > 0 && (
+            <button
+              className="btn btn-success mt-2 mx-2"
+              onClick={saveExcelDataToFirestore}
+            >
+              حفظ بيانات Excel
+            </button>
+          )}
+          {workers.length > 0 && (
+            <>
+              <button
+                className="btn btn-danger mt-2 mx-2"
+                onClick={deleteAllWorkers}
+              >
+                🗑️ مسح جميع العمال
+              </button>
+              <button
+                className="btn btn-warning mt-2 mx-2"
+                onClick={deleteSelectedWorkers}
+              >
+                🗑️ مسح العمال المحددين
+              </button>
+              <button
+                className="btn  mt-2 mx-2"
+                onClick={handleTransferMultipleClick}
+                style={{ backgroundColor: "green", color: "white" }}
+              >
+                🚚 نقل العمال المحددين
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* جدول العمال */}
       {workers.length === 0 ? (
         <p className="text-center text-muted mt-3">لا يوجد عمال بعد</p>
       ) : (
-        <div className="workers-table-wrap mt-4 cursor-pointer ">
+        <div className="workers-table-wrap mt-4 cursor-pointer">
           <table className="table-bordered text-center align-middle cursor-pointer">
             <thead>
               <tr className="custom-row">
-                <th>
-                  <input
-                    type="checkbox"
-                    onChange={toggleSelectAll}
-                    checked={
-                      selectedWorkers.length > 0 &&
-                      selectedWorkers.length ===
-                        filteredWorkers.filter((w) => !!w.id).length &&
-                      filteredWorkers.filter((w) => !!w.id).length > 0
-                    }
-                  />
-                </th>
+                {isLoggedIn && (
+                  <th>
+                    <input
+                      type="checkbox"
+                      onChange={toggleSelectAll}
+                      checked={
+                        selectedWorkers.length > 0 &&
+                        selectedWorkers.length ===
+                          filteredWorkers.filter((w) => !!w.id).length &&
+                        filteredWorkers.filter((w) => !!w.id).length > 0
+                      }
+                    />
+                  </th>
+                )}
                 <th>No#</th>
                 <th>Name</th>
                 <th>Nationality</th>
@@ -328,10 +380,12 @@ export const Workers = () => {
                 <th>Room</th>
                 <th>Mobile</th>
                 <th>Notes</th>
-                <th>Editing</th>
+                {isLoggedIn && <th>Editing</th>}
               </tr>
-              <tr>
-                <th></th>
+
+              {/* صف الفلتر */}
+              <tr style={{ backgroundColor: "#f5f5f5" }}>
+                {isLoggedIn && <th></th>}
                 {[
                   "index",
                   "name",
@@ -351,7 +405,7 @@ export const Workers = () => {
                     {col !== "index" && (
                       <input
                         type="text"
-                        placeholder="فلترة"
+                        placeholder="Filter"
                         value={filters[col] || ""}
                         onChange={(e) => handleFilterChange(e, col)}
                         className="form-control form-control-sm"
@@ -359,37 +413,39 @@ export const Workers = () => {
                     )}
                   </th>
                 ))}
-                <th></th>
+                {isLoggedIn && <th></th>}
               </tr>
             </thead>
+
             <tbody>
-              {filteredWorkers.map((worker) => {
+              {filteredWorkers.map((worker, i) => {
                 const isSelected =
                   !!worker.id && selectedWorkers.includes(worker.id);
-
                 return (
                   <tr
-                    key={worker.id || worker.index}
+                    key={worker.id || i}
                     style={{
                       backgroundColor: isSelected
                         ? "rgb(255, 201, 131)"
-                        : "transparent", // تغيير اللون عند الاختيار
+                        : "transparent",
                     }}
                   >
-                    <td>
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => toggleSelectWorker(worker.id)}
-                        disabled={!worker.id}
-                        title={
-                          worker.id
-                            ? ""
-                            : "احفظ البيانات أولًا قبل التحديد/الحذف"
-                        }
-                      />
-                    </td>
-                    <td>{worker.index}</td>
+                    {isLoggedIn && (
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelectWorker(worker.id)}
+                          disabled={!worker.id}
+                          title={
+                            worker.id
+                              ? ""
+                              : "احفظ البيانات أولًا قبل التحديد/الحذف"
+                          }
+                        />
+                      </td>
+                    )}
+                    <td>{i + 1}</td>
                     <td>{worker.name}</td>
                     <td>{worker.nationality}</td>
                     <td>{worker.religion}</td>
@@ -402,26 +458,28 @@ export const Workers = () => {
                     <td>{worker.room}</td>
                     <td>{worker.phone}</td>
                     <td>{worker.notes}</td>
-                    <td>
-                      <button
-                        className="btn btn-warning btn-sm me-2"
-                        onClick={() => handleEdit(worker)}
-                      >
-                        تعديل
-                      </button>
-                      <button
-                        className="btn btn-danger btn-sm me-2"
-                        onClick={() => handleDeleteClick(worker)}
-                      >
-                        حذف
-                      </button>
-                      <button
-                        className="btn btn-info btn-sm"
-                        onClick={() => handleTransferClick(worker)}
-                      >
-                        نقل
-                      </button>
-                    </td>
+                    {isLoggedIn && (
+                      <td>
+                        <button
+                          className="btn btn-warning btn-sm me-2"
+                          onClick={() => handleEdit(worker)}
+                        >
+                          تعديل
+                        </button>
+                        <button
+                          className="btn btn-danger btn-sm me-2"
+                          onClick={() => handleDeleteClick(worker)}
+                        >
+                          حذف
+                        </button>
+                        <button
+                          className="btn btn-info btn-sm"
+                          onClick={() => handleTransferClick(worker)}
+                        >
+                          نقل
+                        </button>
+                      </td>
+                    )}
                   </tr>
                 );
               })}
@@ -433,7 +491,7 @@ export const Workers = () => {
       {/* مودال الحذف */}
       {showConfirm && (
         <div className="modal show d-block" tabIndex="-1">
-          <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-dialog">
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">تأكيد الحذف</h5>
@@ -444,11 +502,11 @@ export const Workers = () => {
                 ></button>
               </div>
               <div className="modal-body">
-                <p>هل أنت متأكد من حذف العامل "{workerToDelete?.name}"؟</p>
+                <p>هل تريد حذف العامل {workerToDelete.name}؟</p>
               </div>
               <div className="modal-footer">
                 <button className="btn btn-secondary" onClick={cancelDelete}>
-                  رجوع
+                  إلغاء
                 </button>
                 <button className="btn btn-danger" onClick={confirmDelete}>
                   حذف
@@ -459,10 +517,10 @@ export const Workers = () => {
         </div>
       )}
 
-      {/* مودال النقل */}
+      {/* مودال النقل لعامل واحد */}
       {showTransfer && (
         <div className="modal show d-block" tabIndex="-1">
-          <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-dialog">
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">نقل العامل</h5>
@@ -473,16 +531,12 @@ export const Workers = () => {
                 ></button>
               </div>
               <div className="modal-body">
-                <p>
-                  اختر السكن الجديد للعامل:{" "}
-                  <strong>{workerToTransfer?.name}</strong>
-                </p>
+                <p>اختر السكن الجديد للعامل {workerToTransfer.name}</p>
                 <select
-                  className="form-select"
+                  className="form-control"
                   value={newResidence}
                   onChange={(e) => setNewResidence(e.target.value)}
                 >
-                  <option value="">اختر السكن</option>
                   {residenceOptions.map((res) => (
                     <option key={res} value={res}>
                       {res}
@@ -495,10 +549,56 @@ export const Workers = () => {
                   className="btn btn-secondary"
                   onClick={() => setShowTransfer(false)}
                 >
-                  رجوع
+                  إلغاء
                 </button>
                 <button className="btn btn-primary" onClick={confirmTransfer}>
-                  تأكيد النقل
+                  نقل
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* مودال النقل لعدة عمال */}
+      {showTransferMultiple && (
+        <div className="modal show d-block" tabIndex="-1">
+          <div className="modal-dialog">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">نقل العمال المحددين</h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setShowTransferMultiple(false)}
+                ></button>
+              </div>
+              <div className="modal-body">
+                <p>اختر السكن الجديد للعمال المحددين</p>
+                <select
+                  className="form-control"
+                  value={newResidenceMultiple}
+                  onChange={(e) => setNewResidenceMultiple(e.target.value)}
+                >
+                  {residenceOptions.map((res) => (
+                    <option key={res} value={res}>
+                      {res}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="modal-footer">
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setShowTransferMultiple(false)}
+                >
+                  إلغاء
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={confirmTransferMultiple}
+                >
+                  نقل
                 </button>
               </div>
             </div>
@@ -507,4 +607,4 @@ export const Workers = () => {
       )}
     </div>
   );
-};
+}
