@@ -21,12 +21,18 @@ export default function Workers({ isLoggedIn, setIsLoggedIn }) {
   const [workerToDelete, setWorkerToDelete] = useState(null);
   const [excelData, setExcelData] = useState([]);
   const [filters, setFilters] = useState({});
-  const [selectedWorkers, setSelectedWorkers] = useState([]);
+  // ⬇️ تحسين اختيار العمال باستخدام Set بدل المصفوفة
+  const [selectedWorkers, setSelectedWorkers] = useState(new Set());
   const [showTransfer, setShowTransfer] = useState(false);
   const [workerToTransfer, setWorkerToTransfer] = useState(null);
   const [newResidence, setNewResidence] = useState("");
   const [showTransferMultiple, setShowTransferMultiple] = useState(false);
   const [newResidenceMultiple, setNewResidenceMultiple] = useState("");
+
+  // ⬇️ ترقيم الصفحات
+  const PAGE_SIZE = 50;
+  const [currentPage, setCurrentPage] = useState(1);
+
   const navigate = useNavigate();
 
   const residenceOptions = [
@@ -98,14 +104,32 @@ export default function Workers({ isLoggedIn, setIsLoggedIn }) {
     setShowTransfer(true);
   };
 
+  // ⬇️ دالة مساعدة لصياغة نص الملاحظة
+  const buildTransferNote = (oldH, newH) => {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `transferd from ${
+      oldH || "none"
+    } to ${newH} /  date : ${yyyy}/${mm}/${dd}`;
+  };
+
   const confirmTransfer = async () => {
     try {
       if (workerToTransfer?.id && newResidence) {
         const workerRef = doc(db, "workers", workerToTransfer.id);
-        await updateDoc(workerRef, { housing: newResidence });
+        const oldHousing = workerToTransfer.housing || "";
+        const oldNotes = workerToTransfer.notes || "";
+        const noteLine = buildTransferNote(oldHousing, newResidence);
+        const newNotes = oldNotes ? `${oldNotes} | ${noteLine}` : noteLine;
+
+        await updateDoc(workerRef, { housing: newResidence, notes: newNotes });
 
         const updatedWorkers = workers.map((w) =>
-          w.id === workerToTransfer.id ? { ...w, housing: newResidence } : w
+          w.id === workerToTransfer.id
+            ? { ...w, housing: newResidence, notes: newNotes }
+            : w
         );
         setWorkers(updatedWorkers);
         setShowTransfer(false);
@@ -119,7 +143,7 @@ export default function Workers({ isLoggedIn, setIsLoggedIn }) {
   };
 
   const handleTransferMultipleClick = () => {
-    if (selectedWorkers.length === 0) {
+    if (selectedWorkers.size === 0) {
       alert("⚠️ من فضلك حدد عمال أولاً");
       return;
     }
@@ -130,17 +154,38 @@ export default function Workers({ isLoggedIn, setIsLoggedIn }) {
   const confirmTransferMultiple = async () => {
     try {
       if (!newResidenceMultiple) return;
-      const updatePromises = selectedWorkers.map((id) =>
-        updateDoc(doc(db, "workers", id), { housing: newResidenceMultiple })
-      );
-      await Promise.all(updatePromises);
+
+      const ids = Array.from(selectedWorkers);
+
+      const updates = ids.map((id) => {
+        const w = workers.find((x) => x.id === id);
+        const oldHousing = w?.housing || "";
+        const oldNotes = w?.notes || "";
+        const noteLine = buildTransferNote(oldHousing, newResidenceMultiple);
+        const newNotes = oldNotes ? `${oldNotes} | ${noteLine}` : noteLine;
+
+        return updateDoc(doc(db, "workers", id), {
+          housing: newResidenceMultiple,
+          notes: newNotes,
+        });
+      });
+
+      await Promise.all(updates);
+
       const updatedWorkers = workers.map((w) =>
-        selectedWorkers.includes(w.id)
-          ? { ...w, housing: newResidenceMultiple }
+        selectedWorkers.has(w.id)
+          ? {
+              ...w,
+              housing: newResidenceMultiple,
+              notes:
+                (w.notes ? `${w.notes} | ` : "") +
+                buildTransferNote(w.housing || "", newResidenceMultiple),
+            }
           : w
       );
+
       setWorkers(updatedWorkers);
-      setSelectedWorkers([]);
+      setSelectedWorkers(new Set());
       setShowTransferMultiple(false);
       alert("تم نقل العمال المحددين بنجاح ✅");
     } catch (error) {
@@ -158,7 +203,7 @@ export default function Workers({ isLoggedIn, setIsLoggedIn }) {
       );
       await Promise.all(deletePromises);
       setWorkers([]);
-      setSelectedWorkers([]);
+      setSelectedWorkers(new Set());
       alert("تم مسح جميع العمال بنجاح ✅");
     } catch (error) {
       console.error("خطأ في مسح جميع العمال:", error);
@@ -167,21 +212,20 @@ export default function Workers({ isLoggedIn, setIsLoggedIn }) {
   };
 
   const deleteSelectedWorkers = async () => {
-    if (selectedWorkers.length === 0) {
+    if (selectedWorkers.size === 0) {
       alert("⚠️ من فضلك حدد عمال أولاً");
       return;
     }
     if (!window.confirm("هل تريد حذف العمال المحددين؟")) return;
     try {
-      const deletePromises = selectedWorkers.map((id) =>
-        deleteDoc(doc(db, "workers", id))
-      );
+      const ids = Array.from(selectedWorkers);
+      const deletePromises = ids.map((id) => deleteDoc(doc(db, "workers", id)));
       await Promise.all(deletePromises);
       const updatedWorkers = workers
-        .filter((worker) => !selectedWorkers.includes(worker.id))
+        .filter((worker) => !selectedWorkers.has(worker.id))
         .map((w, i) => ({ ...w, index: i + 1 }));
       setWorkers(updatedWorkers);
-      setSelectedWorkers([]);
+      setSelectedWorkers(new Set());
       alert("تم حذف العمال المحددين ✅");
     } catch (error) {
       console.error("خطأ في حذف العمال المحددين:", error);
@@ -218,6 +262,7 @@ export default function Workers({ isLoggedIn, setIsLoggedIn }) {
 
       setWorkers(mappedData.reverse());
       setExcelData(mappedData.reverse());
+      setCurrentPage(1); // رجّع لأول صفحة بعد التحميل
     };
     reader.readAsArrayBuffer(file);
   };
@@ -242,8 +287,9 @@ export default function Workers({ isLoggedIn, setIsLoggedIn }) {
         });
       }
       alert("تم حفظ جميع بيانات Excel في قاعدة البيانات ✅");
-      fetchWorkers();
+      await fetchWorkers();
       setExcelData([]);
+      setCurrentPage(1);
     } catch (error) {
       console.error("خطأ في حفظ البيانات:", error);
       alert("حدث خطأ أثناء الحفظ ❌");
@@ -255,6 +301,7 @@ export default function Workers({ isLoggedIn, setIsLoggedIn }) {
       ...filters,
       [column]: e.target.value,
     });
+    setCurrentPage(1); // رجّع لأول صفحة عند تغيير الفلتر
   };
 
   const filteredWorkers = workers.filter((worker) =>
@@ -262,31 +309,46 @@ export default function Workers({ isLoggedIn, setIsLoggedIn }) {
       worker[key]
         ?.toString()
         .toLowerCase()
-        .includes(filters[key]?.toLowerCase() || "")
+        .includes((filters[key] || "").toLowerCase())
     )
   );
 
+  // ⬇️ حساب الصفحات
+  const totalPages = Math.max(1, Math.ceil(filteredWorkers.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const startIndex = (safePage - 1) * PAGE_SIZE;
+  const endIndex = startIndex + PAGE_SIZE;
+  const paginatedWorkers = filteredWorkers.slice(startIndex, endIndex);
+
   const toggleSelectWorker = (id) => {
     if (!id) return;
-    setSelectedWorkers((prev) =>
-      prev.includes(id) ? prev.filter((w) => w !== id) : [...prev, id]
-    );
+    setSelectedWorkers((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
   const toggleSelectAll = (e) => {
     if (e.target.checked) {
-      setSelectedWorkers(
-        filteredWorkers.filter((w) => !!w.id).map((worker) => worker.id)
-      );
+      // نفس منطقك القديم: اختيار كل العمال في النتائج المفلترة (مش بس الصفحة الحالية)
+      const allIds = filteredWorkers.filter((w) => !!w.id).map((w) => w.id);
+      setSelectedWorkers(new Set(allIds));
     } else {
-      setSelectedWorkers([]);
+      setSelectedWorkers(new Set());
     }
   };
+
+  const goFirst = () => setCurrentPage(1);
+  const goPrev = () => setCurrentPage((p) => Math.max(1, p - 1));
+  const goNext = () => setCurrentPage((p) => Math.min(totalPages, p + 1));
+  const goLast = () => setCurrentPage(totalPages);
 
   return (
     <div
       className="container-fluid mt-5 workers-page"
-      style={{ width: "95%", margin: "auto" }}
+      style={{ width: "100%", margin: "auto" }}
     >
       <h2 className="text-center text-white p-3 rounded shadow">
         قائمة العمال
@@ -349,143 +411,261 @@ export default function Workers({ isLoggedIn, setIsLoggedIn }) {
       {workers.length === 0 ? (
         <p className="text-center text-muted mt-3">لا يوجد عمال بعد</p>
       ) : (
-        <div className="workers-table-wrap mt-4 cursor-pointer">
-          <table className="table-bordered text-center align-middle cursor-pointer">
-            <thead>
-              <tr className="custom-row">
-                {isLoggedIn && (
-                  <th>
-                    <input
-                      type="checkbox"
-                      onChange={toggleSelectAll}
-                      checked={
-                        selectedWorkers.length > 0 &&
-                        selectedWorkers.length ===
-                          filteredWorkers.filter((w) => !!w.id).length &&
-                        filteredWorkers.filter((w) => !!w.id).length > 0
-                      }
-                    />
-                  </th>
-                )}
-                <th>No#</th>
-                <th>Name</th>
-                <th>Nationality</th>
-                <th>Religion</th>
-                <th>Iqama Number</th>
-                <th>File Number</th>
-                <th>Job</th>
-                <th>Residence</th>
-                <th>Floor</th>
-                <th>Apartment</th>
-                <th>Room</th>
-                <th>Mobile</th>
-                <th>Notes</th>
-                {isLoggedIn && <th>Editing</th>}
-              </tr>
+        <>
+          {/* ⬇️ لف الجدول بوعاء قابل للتمرير لتعمل خاصية sticky */}
+          <div
+            className="workers-table-wrap mt-4 cursor-pointer"
+            style={{
+              maxHeight: "75vh",
+              overflow: "auto",
+              borderRadius: 8,
+              border: "1px solid #dddddd41",
+            }}
+          >
+            <table
+              className="table-bordered text-center align-middle cursor-pointer"
+              style={{ width: "100%" }}
+            >
+              <thead>
+                <tr className="custom-row">
+                  {isLoggedIn && (
+                    <th
+                      style={{
+                        position: "sticky",
+                        top: 0,
 
-              {/* صف الفلتر */}
-              <tr style={{ backgroundColor: "#f5f5f5" }}>
-                {isLoggedIn && <th></th>}
-                {[
-                  "index",
-                  "name",
-                  "nationality",
-                  "religion",
-                  "idValue",
-                  "fileNumber",
-                  "job",
-                  "housing",
-                  "floor",
-                  "apartment",
-                  "room",
-                  "phone",
-                  "notes",
-                ].map((col) => (
-                  <th key={col}>
-                    {col !== "index" && (
+                        zIndex: 3,
+                      }}
+                    >
                       <input
-                        type="text"
-                        placeholder="Filter"
-                        value={filters[col] || ""}
-                        onChange={(e) => handleFilterChange(e, col)}
-                        className="form-control form-control-sm"
+                        type="checkbox"
+                        onChange={toggleSelectAll}
+                        checked={
+                          selectedWorkers.size > 0 &&
+                          selectedWorkers.size ===
+                            filteredWorkers.filter((w) => !!w.id).length &&
+                          filteredWorkers.filter((w) => !!w.id).length > 0
+                        }
                       />
-                    )}
-                  </th>
-                ))}
-                {isLoggedIn && <th></th>}
-              </tr>
-            </thead>
+                    </th>
+                  )}
+                  {[
+                    "No#",
+                    "Name",
+                    "Nationality",
+                    "Religion",
+                    "Iqama Number",
+                    "File Number",
+                    "Job",
+                    "Residence",
+                    "Floor",
+                    "Apartment",
+                    "Room",
+                    "Mobile",
+                    "Notes",
+                    ...(isLoggedIn ? ["Editing"] : []),
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      style={{
+                        position: "sticky",
+                        top: 0,
 
-            <tbody>
-              {filteredWorkers.map((worker, i) => {
-                const isSelected =
-                  !!worker.id && selectedWorkers.includes(worker.id);
-                return (
-                  <tr
-                    key={worker.id || i}
-                    style={{
-                      backgroundColor: isSelected
-                        ? "rgb(255, 201, 131)"
-                        : "transparent",
-                    }}
-                  >
-                    {isLoggedIn && (
-                      <td>
+                        zIndex: 2,
+                        color: "white",
+                      }}
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+
+                {/* صف الفلتر */}
+                <tr style={{ backgroundColor: "#f5f5f5" }}>
+                  {isLoggedIn && (
+                    <th
+                      style={{
+                        position: "sticky",
+                        top: 42, // ارتفاع الصف الأول التقريبي
+
+                        zIndex: 3,
+                      }}
+                    ></th>
+                  )}
+                  {[
+                    "index",
+                    "name",
+                    "nationality",
+                    "religion",
+                    "idValue",
+                    "fileNumber",
+                    "job",
+                    "housing",
+                    "floor",
+                    "apartment",
+                    "room",
+                    "phone",
+                    "notes",
+                  ].map((col) => (
+                    <th
+                      key={col}
+                      style={{
+                        position: "sticky",
+                        top: 42,
+
+                        zIndex: 2,
+                        color: "white",
+                      }}
+                    >
+                      {col !== "index" && (
                         <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={() => toggleSelectWorker(worker.id)}
-                          disabled={!worker.id}
-                          title={
-                            worker.id
-                              ? ""
-                              : "احفظ البيانات أولًا قبل التحديد/الحذف"
-                          }
+                          type="text"
+                          placeholder="Filter"
+                          value={filters[col] || ""}
+                          onChange={(e) => handleFilterChange(e, col)}
+                          className="form-control form-control-sm"
                         />
+                      )}
+                    </th>
+                  ))}
+                  {isLoggedIn && (
+                    <th
+                      style={{
+                        position: "sticky",
+                        top: 42,
+
+                        zIndex: 2,
+                        color: "white",
+                      }}
+                    ></th>
+                  )}
+                </tr>
+              </thead>
+
+              <tbody>
+                {paginatedWorkers.map((worker, i) => {
+                  const isSelected =
+                    !!worker.id && selectedWorkers.has(worker.id);
+                  const rowNumber = startIndex + i + 1; // رقم الصف مع مراعاة الصفحة
+                  return (
+                    <tr
+                      key={worker.id || `${worker.name}-${rowNumber}`}
+                      style={{
+                        backgroundColor: isSelected
+                          ? "rgb(255, 201, 131)"
+                          : "transparent",
+                      }}
+                    >
+                      {isLoggedIn && (
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleSelectWorker(worker.id)}
+                            disabled={!worker.id}
+                            title={
+                              worker.id
+                                ? ""
+                                : "احفظ البيانات أولًا قبل التحديد/الحذف"
+                            }
+                          />
+                        </td>
+                      )}
+                      <td>{rowNumber}</td>
+                      <td>{worker.name}</td>
+                      <td>{worker.nationality}</td>
+                      <td>{worker.religion}</td>
+                      <td>{worker.idValue}</td>
+                      <td>{worker.fileNumber}</td>
+                      <td>{worker.job}</td>
+                      <td>{worker.housing}</td>
+                      <td>{worker.floor}</td>
+                      <td>{worker.apartment}</td>
+                      <td>{worker.room}</td>
+                      <td>{worker.phone}</td>
+                      <td
+                        title={worker.notes} // ده اللي بيظهر النص كامل لما توقف بالماوس
+                        style={{
+                          maxWidth: "150px", // عرض محدد
+                          whiteSpace: "nowrap", // يمنع نزول النص لسطر تاني
+                          overflow: "hidden", // يخفي الزيادة
+                          textOverflow: "ellipsis", // يجيب "..."
+                          cursor: "pointer", // شكل اليد عشان تبقى واضحة إنها تتشاف
+                          backgroundColor:
+                            worker.notes && worker.notes.trim() !== ""
+                              ? "#fff3b0"
+                              : "",
+                          // اصفر فاتح لو فيه نص
+                        }}
+                      >
+                        {worker.notes}
                       </td>
-                    )}
-                    <td>{i + 1}</td>
-                    <td>{worker.name}</td>
-                    <td>{worker.nationality}</td>
-                    <td>{worker.religion}</td>
-                    <td>{worker.idValue}</td>
-                    <td>{worker.fileNumber}</td>
-                    <td>{worker.job}</td>
-                    <td>{worker.housing}</td>
-                    <td>{worker.floor}</td>
-                    <td>{worker.apartment}</td>
-                    <td>{worker.room}</td>
-                    <td>{worker.phone}</td>
-                    <td>{worker.notes}</td>
-                    {isLoggedIn && (
-                      <td>
-                        <button
-                          className="btn btn-warning btn-sm me-2"
-                          onClick={() => handleEdit(worker)}
-                        >
-                          تعديل
-                        </button>
-                        <button
-                          className="btn btn-danger btn-sm me-2"
-                          onClick={() => handleDeleteClick(worker)}
-                        >
-                          حذف
-                        </button>
-                        <button
-                          className="btn btn-info btn-sm"
-                          onClick={() => handleTransferClick(worker)}
-                        >
-                          نقل
-                        </button>
-                      </td>
-                    )}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                      {isLoggedIn && (
+                        <td>
+                          <button
+                            className="btn btn-warning btn-sm me-2"
+                            onClick={() => handleEdit(worker)}
+                          >
+                            تعديل
+                          </button>
+                          <button
+                            className="btn btn-danger btn-sm me-2"
+                            onClick={() => handleDeleteClick(worker)}
+                          >
+                            حذف
+                          </button>
+                          <button
+                            className="btn btn-info btn-sm"
+                            onClick={() => handleTransferClick(worker)}
+                          >
+                            نقل
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* ⬇️ تحكم التصفح بين الصفحات */}
+          <div className="d-flex justify-content-center align-items-center gap-2 mt-3 pages color-black">
+            <button
+              className="btn btn-outline-secondary btn-sm"
+              onClick={goFirst}
+              disabled={safePage === 1}
+            >
+              ⏮️ الأول
+            </button>
+            <button
+              className="btn btn-outline-secondary btn-sm "
+              onClick={goPrev}
+              disabled={safePage === 1}
+            >
+              ◀️ السابق
+            </button>
+            <span className="mx-2">
+              صفحة {safePage} من {totalPages} — عدد السجلات:{" "}
+              {filteredWorkers.length}
+            </span>
+            <button
+              className="btn btn-outline-secondary btn-sm"
+              onClick={goNext}
+              disabled={safePage === totalPages}
+              style={{ color: "black", backgroundColor: "white" }}
+            >
+              التالي ▶️
+            </button>
+            <button
+              className="btn btn-outline-secondary btn-sm"
+              onClick={goLast}
+              disabled={safePage === totalPages}
+            >
+              الأخير ⏭️
+            </button>
+          </div>
+        </>
       )}
 
       {/* مودال الحذف */}

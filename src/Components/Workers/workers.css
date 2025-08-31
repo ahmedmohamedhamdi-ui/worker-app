@@ -26,11 +26,37 @@ tbody tr:hover {
   table-layout: auto;
   white-space: nowrap; /* منع النصوص من الانكسار */
 }
-
+.sticky-header th {
+  position: sticky;
+  top: 0;
+  background-color: #fff;
+  z-index: 10;
+}
+.pages {
+  margin-bottom: 50px;
+  background-color: orange;
+  color: rgb(255, 255, 255);
+  height: 60px;
+  width: 40%;
+  margin: auto;
+  border-radius: 10;
+}
+th {
+  background-color: orange;
+}
+.pages button {
+  background-color: white;
+  color: black;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.3s, color 0.3s;
+}
 /* الخلايا */
 .workers-table-wrap table th,
 .workers-table-wrap table td {
-  padding: 8px 12px;
+  padding: 4px 6px;
   text-align: center; /* السماح للنص بالتمدد أفقيًا */
   vertical-align: middle;
   overflow: hidden;

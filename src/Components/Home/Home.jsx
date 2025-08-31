@@ -9,6 +9,7 @@ import {
 import Workers from "../Workers/Workers";
 import { Addworker } from "../Addworker/Addworker";
 import Login from "../Login/Login";
+import { Housingdata } from "../Housingdata/Housingdata";
 
 export const Home = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -52,6 +53,7 @@ export const Home = () => {
           path="/login"
           element={<Login setIsLoggedIn={setIsLoggedIn} />}
         />
+        <Route path="/houses" element={<Housingdata />} />
       </Routes>
     </Router>
   );
