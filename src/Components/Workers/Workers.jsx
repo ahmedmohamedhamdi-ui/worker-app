@@ -416,7 +416,7 @@ export default function Workers({ isLoggedIn, setIsLoggedIn }) {
           <div
             className="workers-table-wrap mt-4 cursor-pointer"
             style={{
-              maxHeight: "100vh",
+              maxHeight: "120vh",
               overflow: "auto",
               borderRadius: 8,
               border: "1px solid #dddddd41",
